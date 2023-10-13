@@ -1,4 +1,6 @@
-# Introdução
+# PosTech.TechChallenge.PhaseThree
+
+## Introdução
 
 Esse projeto tem como objetivo demonstrar a utilização de todos os conhecimentos adquiridos durante a **Fase 3** na Pós Graduação da FIAP em **Desenvolvimento .NET e Azure**.
 
@@ -121,4 +123,3 @@ Para atender esse requisito, foi necessário realizar pequenas alterações na p
 Além disso os resultados foram gerados e disponibilizados via Azure DevOps na guia Tests, conforme a imagem abaixo:
 
 ![imagem pipeline testes](/docs/img_tests_runs.png "Testes executados")
-# PosTech.TechChallenge.PhaseThree
