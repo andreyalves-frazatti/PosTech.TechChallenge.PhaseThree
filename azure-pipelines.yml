@@ -1,0 +1,152 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+stages:
+- stage: 'Build'
+  displayName: 'Build Application'
+  jobs:
+  - job: 'Build'
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: Restore Packages
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: Build Projects
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '-c $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: Run Unit Tests
+      inputs:
+        command: 'test'
+        projects: '**/*.UnitTests.csproj'
+        testRunTitle: 'Run Unit Tests'
+        arguments: '-c $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: Publish Build Artifacts
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+        zipAfterPublish: true
+
+    - publish: '$(Build.ArtifactStagingDirectory)'
+      artifact: drop
+  
+- stage: 'IntegrationTests'
+  displayName: 'Integration Tests'
+  dependsOn: 'Build'
+  condition: succeeded()
+  jobs:
+  - job: 'Tests'
+    steps:
+    - task: DockerCompose@0
+      displayName: Docker Compose UP
+      inputs:
+        containerregistrytype: Container Registry
+        dockerComposeFile: docker-compose.yml
+        dockerComposeCommand: 'up -d'
+
+    - task: DotNetCoreCLI@2
+      displayName: Run Integration Tests
+      inputs:
+        command: 'test'
+        projects: '**/*.IntegrationTests.csproj'
+        testRunTitle: 'Run Integration Tests'
+        arguments: '-c $(buildConfiguration) --collect:"XPlat Code Coverage"'
+
+- stage: 'FunctionalTests'
+  displayName: 'Functional Tests'
+  dependsOn: 'Build'
+  condition: succeeded()
+  jobs:
+  - job: 'Tests'
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: Run Functional Tests
+      inputs:
+        command: 'test'
+        projects: '**/*.FunctionalTests.csproj'
+        testRunTitle: 'Run Functional Tests'
+        arguments: '-c $(buildConfiguration)'
+
+- stage: 'Dev'
+  displayName: 'Deploy on Development'
+  dependsOn: 'Build'
+  condition: succeeded()
+  jobs:
+    - deployment: 'Deploy'
+      environment: dev
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: 'current'
+                artifact: 'drop'
+              - task: AzureWebApp@1
+                inputs:
+                  azureSubscription: '$(AzureSubscription)'
+                  appType: 'webApp'
+                  appName: '$(WebAppNameDevelopment)'
+                  package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+                  deploymentMethod: 'auto'
+
+- stage: 'Staging'
+  displayName: 'Deploy on Staging'
+  dependsOn: 'Dev'
+  condition: succeeded()
+  jobs:
+    - deployment: 'Deploy'
+      environment: staging
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: 'current'
+                artifact: 'drop'
+              - task: AzureWebApp@1
+                inputs:
+                  azureSubscription: '$(AzureSubscription)'
+                  appType: 'webApp'
+                  appName: '$(WebAppNameStaging)'
+                  package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+                  deploymentMethod: 'auto'
+
+- stage: 'Production'
+  displayName: 'Deploy on Production'
+  dependsOn: 'Staging'
+  condition: succeeded()
+  jobs:
+    - deployment: 'Deploy'
+      environment: production
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: 'current'
+                artifact: 'drop'
+              - task: AzureWebApp@1
+                inputs:
+                  azureSubscription: '$(AzureSubscription)'
+                  appType: 'webApp'
+                  appName: '$(WebAppNameProduction)'
+                  package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+                  deploymentMethod: 'auto'
+

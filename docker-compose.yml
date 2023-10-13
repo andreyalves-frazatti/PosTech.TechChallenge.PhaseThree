@@ -1,0 +1,15 @@
+version: "3.7"
+
+networks:
+  postech-phase3:
+  
+services:
+  postech-phase3:
+    image: "mcr.microsoft.com/mssql/server"
+    ports:
+      - "1433:1433"
+    environment:
+        SA_PASSWORD: "senha@123"
+        ACCEPT_EULA: "Y"
+    networks:
+      - postech-phase3
