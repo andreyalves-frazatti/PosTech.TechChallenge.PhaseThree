@@ -26,6 +26,8 @@ builder.Services.AddSwaggerGen(c =>
     c.ConfigureSwaggerSecurityScheme();
 });
 
+builder.Services.AddApplicationInsightsTelemetry();
+
 var app = builder.Build();
 
 app.UseSwagger();

@@ -112,7 +112,9 @@ Cenario: Erro ao tentar criar um usuário existente.
 
 ### Requisito 2
 
-TODO.
+Foram realizados testes locais com a utilização do **Azure Application Insights**. Basicamente a implementação foi bem simples, bastando apenas configurar o recurso na Azure e incluir na aplicação.
+
+![imagem app insights](/docs/img_app_insights.png "Azure App Insights.")
 
 ### Requisito 3
 
